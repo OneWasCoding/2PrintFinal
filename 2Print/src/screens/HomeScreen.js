@@ -15,18 +15,22 @@ export default function HomeScreen({ navigation }) {
     fetchProducts();
   }, []);
 
-  const fetchProducts = async () => {
+const fetchProducts = async () => {
     try {
-      // Ensure this IP is correct for your network!
+      // Make sure your IP is still correct here!
       const response = await axios.get('http://10.134.52.235:5000/products');
+      
+      // SPY 1: See what the server actually sent back
+      console.log("SERVER RESPONSE:", response.data); 
+      
       setProducts(response.data);
     } catch (error) {
-      console.error("Fetch error:", error);
+      // SPY 2: Catch any network crashes
+      console.error("FETCH ERROR:", error.message); 
     } finally {
       setLoading(false);
     }
   };
-
   // --- Helper Components defined INSIDE to ensure Scope Safety ---
   const renderCategory = ({ item }) => (
     <View style={styles.categoryItem}>
@@ -38,7 +42,7 @@ export default function HomeScreen({ navigation }) {
   );
 
   const renderCardItem = ({ item }) => (
-    <Card style={styles.cardItem} onPress={() => console.log('Clicked', item.name)}>
+    <Card style={styles.cardItem} onPress={() => navigation.navigate('ProductDetails', { product: item })}>
       <Card.Cover source={{ uri: item.image }} style={styles.cardImage} />
       <Card.Content style={{ padding: 10 }}>
         <Text variant="labelSmall" style={{ color: '#666' }}>{item.game}</Text>
