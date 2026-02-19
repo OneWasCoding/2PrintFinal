@@ -1,81 +1,93 @@
 import React, { useState } from 'react';
-import { View, Alert } from 'react-native';
-import { TextInput, Button, Title } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { TextInput, Button, Text, Title, Surface } from 'react-native-paper';
 import axios from 'axios';
-import { useNavigation } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function RegisterScreen() {
-  const navigation = useNavigation();
+export default function RegisterScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    if(!username || !email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
-      return;
-    }
-
     setLoading(true);
     try {
-      // connecting to your backend
-      await axios.post('http://172.34.89.80:5000/register', {
-        username,
-        email,
-        password
-      });
-      
-      Alert.alert("Success", "Account created! Please login.");
+      // Make sure this matches your PC's IP address!
+      await axios.post('http://10.134.52.235:5000/register', { username, email, password });
+      alert("Success! You can now log in.");
       navigation.navigate('Login');
     } catch (error) {
-      console.error(error);
-      Alert.alert("Registration Failed", error.response?.data?.message || "Check your network connection");
+      alert(error.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={{ flex: 1, padding: 20, justifyContent: 'center', backgroundColor: '#fff' }}>
-      <Title style={{ textAlign: 'center', marginBottom: 20 }}>Create Account</Title>
-      
-      <TextInput
-        label="Username"
-        value={username}
-        onChangeText={setUsername}
-        mode="outlined"
-        style={{ marginBottom: 10 }}
-      />
-      <TextInput
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        mode="outlined"
-        style={{ marginBottom: 10 }}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        mode="outlined"
-        secureTextEntry
-        style={{ marginBottom: 20 }}
-      />
-      
-      <Button mode="contained" onPress={handleRegister} loading={loading} disabled={loading}>
-        Register
-      </Button>
-      
-      <Button 
-        mode="text" 
-        onPress={() => navigation.navigate('Login')} 
-        style={{ marginTop: 10 }}
-      >
-        Already have an account? Login
-      </Button>
-    </View>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      style={styles.container}
+    >
+      <View style={styles.header}>
+        <MaterialCommunityIcons name="account-plus" size={80} color="#6200ee" />
+        <Title style={styles.appTitle}>Create Account</Title>
+      </View>
+
+      <Surface style={styles.formContainer} elevation={4}>
+        <TextInput 
+          label="Username" 
+          value={username} 
+          onChangeText={setUsername} 
+          mode="outlined" 
+          style={styles.input} 
+          autoCapitalize="none" 
+        />
+        <TextInput 
+          label="Email Address" 
+          value={email} 
+          onChangeText={setEmail} 
+          mode="outlined" 
+          style={styles.input} 
+          autoCapitalize="none" 
+          keyboardType="email-address" 
+        />
+        <TextInput 
+          label="Password" 
+          value={password} 
+          onChangeText={setPassword} 
+          mode="outlined" 
+          secureTextEntry 
+          style={styles.input} 
+        />
+        
+        <Button 
+          mode="contained" 
+          onPress={handleRegister} 
+          loading={loading} 
+          disabled={loading} 
+          style={styles.button}
+          contentStyle={{ height: 50 }}
+        >
+          Register
+        </Button>
+
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.linkText}>
+            Already have an account? <Text style={{fontWeight: 'bold', color: '#6200ee'}}>Sign In</Text>
+          </Text>
+        </TouchableOpacity>
+      </Surface>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f4f4f4', justifyContent: 'center' },
+  header: { alignItems: 'center', marginBottom: 30 },
+  appTitle: { fontSize: 32, fontWeight: 'bold', color: '#333', marginTop: 10 },
+  formContainer: { marginHorizontal: 20, padding: 25, borderRadius: 15, backgroundColor: 'white' },
+  input: { marginBottom: 15, backgroundColor: 'white' },
+  button: { marginTop: 10, borderRadius: 8 },
+  linkText: { marginTop: 20, textAlign: 'center', color: '#555' },
+});

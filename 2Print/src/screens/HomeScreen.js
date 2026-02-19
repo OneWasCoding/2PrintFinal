@@ -18,7 +18,7 @@ export default function HomeScreen({ navigation }) {
   const fetchProducts = async () => {
     try {
       // Ensure this IP is correct for your network!
-      const response = await axios.get('http://172.34.89.80:5000/products');
+      const response = await axios.get('http://10.134.52.235:5000/products');
       setProducts(response.data);
     } catch (error) {
       console.error("Fetch error:", error);

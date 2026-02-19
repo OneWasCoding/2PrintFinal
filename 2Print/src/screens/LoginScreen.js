@@ -15,7 +15,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       // Replace with your IPv4 Address
-      const response = await axios.post('http://172.34.89.80:5000/login', {
+      const response = await axios.post('http://10.134.52.235:5000/login', {
         email,
         password
       });
