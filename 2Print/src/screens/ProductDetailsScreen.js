@@ -2,15 +2,32 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, Image } from 'react-native';
 import { Text, Button, Surface, Chip, Divider } from 'react-native-paper';
 
+// 1. Import your API_URL here
+import { API_URL } from '../config';
+import { useCart } from '../context/CartContext';
+
 export default function ProductDetailsScreen({ route, navigation }) {
-  // This catches the 'item' data we will send from the Home Screen
   const { product } = route.params;
+  const { addToCart } = useCart();
+
+  const handleAddToCart = () => {
+    addToCart(product);
+    alert(`${product.name} added to cart!`);
+    navigation.navigate('Cart');
+  };
+
+  // 2. Smart Image Formatter: 
+  // If the image is a web link (http...), use it directly. 
+  // If it's a local file from your database (like '/images/card.jpg'), attach the API_URL to it!
+  const imageUrl = product.image?.startsWith('http') 
+    ? product.image 
+    : `${API_URL}${product.image}`;
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.imageContainer}>
-        {/* We use resizeMode="contain" so the trading card doesn't get cropped */}
-        <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
+        {/* 3. We use the formatted imageUrl right here */}
+        <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="contain" />
       </View>
       
       <Surface style={styles.detailsContainer} elevation={4}>
@@ -38,7 +55,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
         <Button 
           mode="contained" 
           icon="cart-plus" 
-          onPress={() => alert(`${product.name} added to cart!`)} 
+          onPress={handleAddToCart} 
           style={styles.button}
           contentStyle={{ height: 55 }}
         >

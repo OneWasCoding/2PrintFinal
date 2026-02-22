@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { TextInput, Button, Text, Title, Surface } from 'react-native-paper';
 import axios from 'axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+// Import your API config
+import { API_URL } from '../config';
 
 export default function RegisterScreen({ navigation }) {
   const [username, setUsername] = useState('');
@@ -10,15 +13,22 @@ export default function RegisterScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // --- NEW STATE FOR PASSWORD VISIBILITY ---
+  const [secureTextEntry, setSecureTextEntry] = useState(true);
+
   const handleRegister = async () => {
     setLoading(true);
     try {
-      // Make sure this matches your PC's IP address!
-      await axios.post('http://10.134.52.235:5000/register', { username, email, password });
-      alert("Success! You can now log in.");
+      // 1. Create the account in your MongoDB database
+      await axios.post(`${API_URL}/register`, { username, email, password });
+      
+      // 2. Show a success alert
+      Alert.alert("Success!", "Account created successfully. Please log in.");
+      
+      // 3. Send them back to the Login screen
       navigation.navigate('Login');
     } catch (error) {
-      alert(error.response?.data?.message || "Registration failed");
+      Alert.alert("Error", error.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -52,13 +62,21 @@ export default function RegisterScreen({ navigation }) {
           autoCapitalize="none" 
           keyboardType="email-address" 
         />
+
+        {/* --- PASSWORD FIELD WITH EYE ICON --- */}
         <TextInput 
           label="Password" 
           value={password} 
           onChangeText={setPassword} 
           mode="outlined" 
-          secureTextEntry 
+          secureTextEntry={secureTextEntry} 
           style={styles.input} 
+          right={
+            <TextInput.Icon 
+              icon={secureTextEntry ? "eye" : "eye-off"} 
+              onPress={() => setSecureTextEntry(!secureTextEntry)} 
+            />
+          }
         />
         
         <Button 

@@ -6,7 +6,7 @@ console.log("MONGO_URI value is:", process.env.MONGO_URI);
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken');
 
 // Import Models
@@ -24,7 +24,7 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ DB Error:', err));
 
-// --- AUTH ROUTES ---
+// --- AUTH & USER ROUTES ---
 
 // 1. REGISTER
 app.post('/register', async (req, res) => {
@@ -71,9 +71,86 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// --- PRODUCT ROUTES (NEW) ---
+// 3. UPDATE USERNAME (NEW)
+app.put('/update-profile', async (req, res) => {
+  try {
+    const { email, newUsername } = req.body;
 
-// 3. GET ALL PRODUCTS
+    // Find the user by their email and update the username
+    const updatedUser = await User.findOneAndUpdate(
+      { email: email }, 
+      { username: newUsername }, 
+      { returnDocument: 'after' } // <-- WARNING FIXED HERE!
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
+  } catch (error) {
+    console.error("Update Profile Error:", error);
+    res.status(500).json({ message: "Server error while updating profile" });
+  }
+});
+
+// 4. CHANGE PASSWORD (NEW)
+app.put('/change-password', async (req, res) => {
+  try {
+    const { email, currentPassword, newPassword } = req.body;
+
+    // Find the user
+    const user = await User.findOne({ email: email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log("Password typed by user:", currentPassword);
+    console.log("Password stored in DB:", user.password);
+
+    // Check if the current password they typed matches the database
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect current password" });
+    }
+
+    // Encrypt the NEW password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Save the new encrypted password to MongoDB
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Change Password Error:", error);
+    res.status(500).json({ message: "Server error while changing password" });
+  }
+});
+
+// --- DELETE ACCOUNT HANDLER ---
+app.delete('/delete-account', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Remove the user from MongoDB
+    const deletedUser = await User.findOneAndDelete({ email: email });
+
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ message: "Account successfully deleted from database" });
+  } catch (error) {
+    console.error("Delete Account Error:", error);
+    res.status(500).json({ message: "Server error while deleting account" });
+  }
+});
+
+// --- PRODUCT ROUTES ---
+
+// 6. GET ALL PRODUCTS
 app.get('/products', async (req, res) => {
   try {
     const products = await Product.find();
@@ -83,7 +160,7 @@ app.get('/products', async (req, res) => {
   }
 });
 
-// 4. SEED DATABASE (Run this once to fill your shop)
+// 6. SEED DATABASE
 app.get('/seed-products', async (req, res) => {
   const sampleProducts = [
     {
