@@ -1,5 +1,4 @@
 import React from 'react';
-import { View, Text } from 'react-native'; 
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -12,6 +11,8 @@ import ProfileScreen from '../screens/ProfileScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ProductDetailsScreen from '../screens/ProductDetailsScreen';
+// Make sure this path is perfectly correct based on your folder structure!
+import AddListingScreen from '../screens/AddListingScreen'; 
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -48,7 +49,20 @@ export default function AppNavigator() {
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
-        <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} options={{ title: 'Card Details' }} />
+        
+        {/* Detail Screens (Placed outside the tabs so they open full-screen) */}
+        <Stack.Screen 
+          name="ProductDetails" 
+          component={ProductDetailsScreen} 
+          options={{ title: 'Card Details' }} 
+        />
+        
+        {/* --- ADD LISTING FIXED HERE --- */}
+        <Stack.Screen 
+          name="AddListing" 
+          component={AddListingScreen} 
+          options={{ title: 'Sell a Card' }} 
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

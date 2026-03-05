@@ -162,7 +162,7 @@ app.get('/products', async (req, res) => {
   }
 });
 
-// --- NEW: ADD A PRODUCT (WITH CLOUDINARY UPLOAD) ---
+// --- ADD A PRODUCT (WITH CLOUDINARY UPLOAD) ---
 app.post('/add-product', async (req, res) => {
   try {
     const { name, set, game, condition, price, base64Image, category } = req.body;
@@ -182,12 +182,12 @@ app.post('/add-product', async (req, res) => {
     // 3. Save the new product to MongoDB
     const newProduct = new Product({
       name,
-      set,
+      set: set || 'User Uploaded', // <--- THE FIX: Automatically add a fallback string here!
       game,
-      condition,
+      condition: condition || 'Near Mint',
       price: parseFloat(price),
       image: imageUrl, 
-      category
+      category: category || 'Single Card'
     });
 
     await newProduct.save();
