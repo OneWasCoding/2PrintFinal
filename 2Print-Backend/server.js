@@ -8,14 +8,25 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken');
+const cloudinary = require('cloudinary').v2; // <--- NEW: Import Cloudinary
 
 // Import Models
 const User = require('./models/User');
 const Product = require('./models/Product');
 
 const app = express();
-app.use(express.json());
+
+// --- NEW: Increase JSON limits for base64 image uploads ---
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
+
+// --- NEW: Cloudinary Configuration ---
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // --- DATABASE CONNECTION ---
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/2Print-Data';
@@ -71,16 +82,15 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// 3. UPDATE USERNAME (NEW)
+// 3. UPDATE USERNAME
 app.put('/update-profile', async (req, res) => {
   try {
     const { email, newUsername } = req.body;
 
-    // Find the user by their email and update the username
     const updatedUser = await User.findOneAndUpdate(
       { email: email }, 
       { username: newUsername }, 
-      { returnDocument: 'after' } // <-- WARNING FIXED HERE!
+      { returnDocument: 'after' } 
     );
 
     if (!updatedUser) {
@@ -94,31 +104,24 @@ app.put('/update-profile', async (req, res) => {
   }
 });
 
-// 4. CHANGE PASSWORD (NEW)
+// 4. CHANGE PASSWORD
 app.put('/change-password', async (req, res) => {
   try {
     const { email, currentPassword, newPassword } = req.body;
 
-    // Find the user
     const user = await User.findOne({ email: email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    console.log("Password typed by user:", currentPassword);
-    console.log("Password stored in DB:", user.password);
-
-    // Check if the current password they typed matches the database
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Incorrect current password" });
     }
 
-    // Encrypt the NEW password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // Save the new encrypted password to MongoDB
     user.password = hashedPassword;
     await user.save();
 
@@ -129,12 +132,11 @@ app.put('/change-password', async (req, res) => {
   }
 });
 
-// --- DELETE ACCOUNT HANDLER ---
+// 5. DELETE ACCOUNT
 app.delete('/delete-account', async (req, res) => {
   try {
     const { email } = req.body;
 
-    // Remove the user from MongoDB
     const deletedUser = await User.findOneAndDelete({ email: email });
 
     if (!deletedUser) {
@@ -160,7 +162,44 @@ app.get('/products', async (req, res) => {
   }
 });
 
-// 6. SEED DATABASE
+// --- NEW: ADD A PRODUCT (WITH CLOUDINARY UPLOAD) ---
+app.post('/add-product', async (req, res) => {
+  try {
+    const { name, set, game, condition, price, base64Image, category } = req.body;
+
+    if (!name || !price || !base64Image) {
+      return res.status(400).json({ message: "Missing required fields or image." });
+    }
+
+    // 1. Upload the base64 string to Cloudinary
+    const uploadResponse = await cloudinary.uploader.upload(base64Image, {
+      folder: '2print_cards', 
+    });
+
+    // 2. Get the secure URL from Cloudinary
+    const imageUrl = uploadResponse.secure_url;
+
+    // 3. Save the new product to MongoDB
+    const newProduct = new Product({
+      name,
+      set,
+      game,
+      condition,
+      price: parseFloat(price),
+      image: imageUrl, 
+      category
+    });
+
+    await newProduct.save();
+
+    res.status(201).json({ message: "Product added successfully", product: newProduct });
+  } catch (error) {
+    console.error("Add Product Error:", error);
+    res.status(500).json({ message: "Server error while adding product", error: error.message });
+  }
+});
+
+// 7. SEED DATABASE
 app.get('/seed-products', async (req, res) => {
   const sampleProducts = [
     {
@@ -202,9 +241,7 @@ app.get('/seed-products', async (req, res) => {
   ];
 
   try {
-    // Clear old data first to avoid duplicates
     await Product.deleteMany({});
-    // Insert new data
     await Product.insertMany(sampleProducts);
     res.json({ message: "✅ Database Seeded Successfully!" });
   } catch (err) {

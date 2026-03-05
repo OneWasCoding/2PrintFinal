@@ -38,10 +38,18 @@ export default function ProfileScreen({ navigation }) {
   const handleSaveProfile = async () => {
     setLoading(true);
     try {
-      await axios.put(`${API_URL}/update-profile`, { 
-        email: user.email, 
-        newUsername: editUsername 
-      });
+      await axios.put(
+        `${API_URL}/update-profile`, 
+        { 
+          email: user.email, 
+          newUsername: editUsername 
+        }, // <--- The data is the second argument
+        {
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        } // <--- The headers are the third argument
+      );
       const updatedUser = { ...user, username: editUsername };
       setUser(updatedUser);
       await AsyncStorage.setItem('userInfo', JSON.stringify(updatedUser));
@@ -60,12 +68,20 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
     setLoading(true);
-    try {
-      await axios.put(`${API_URL}/change-password`, { 
+  try {
+    await axios.put(
+      `${API_URL}/change-password`, 
+      { 
         email: user.email, 
         currentPassword, 
         newPassword 
-      });
+      }, // <-- 2nd argument: Your data payload
+      {
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        }
+      }  // <-- 3rd argument: The Ngrok bypass header
+    );
       setPasswordVisible(false);
       setCurrentPassword('');
       setNewPassword('');
@@ -98,7 +114,11 @@ export default function ProfileScreen({ navigation }) {
             setLoading(true);
             try {
               // Note: axios.delete requires data to be passed in a 'data' object
-              await axios.delete(`${API_URL}/delete-account`, { data: { email: user.email } });
+              await axios.delete(`${API_URL}/delete-account`, { data: { email: user.email } }, {
+                headers: {
+                  'ngrok-skip-browser-warning': 'true'
+                }
+              });
               await AsyncStorage.multiRemove(['userInfo', 'userToken']);
               Alert.alert("Account Deleted", "Your profile has been removed.");
               navigation.replace('Login');

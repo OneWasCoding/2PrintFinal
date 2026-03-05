@@ -25,18 +25,20 @@ export default function HomeScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState(FALLBACK_PRODUCTS);
   const [refreshing, setRefreshing] = useState(false);
-
+``
   useEffect(() => {
     fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
     try {
+      
       // --- 2. UPDATED TO USE API_URL ---
-      const response = await axios.get(`${API_URL}/products`);
-      if (response.data && response.data.length > 0) {
-        setProducts(response.data);
-      }
+      const response = await axios.get(`${API_URL}/products`, {
+  headers: {
+    'ngrok-skip-browser-warning': 'true' // <--- THIS IS THE MAGIC KEY
+  }
+});
     } catch (error) {
       console.log("Using fallback data. Server error:", error.message);
     } finally {

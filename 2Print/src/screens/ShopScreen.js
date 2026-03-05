@@ -23,7 +23,14 @@ export default function ShopScreen({ navigation }) {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/products`);
+      const response = await axios.get(
+        `${API_URL}/products`, 
+        {
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        } // <-- 2nd argument: The Ngrok bypass header
+      );
       if (response.data) {
         setProducts(response.data);
       }

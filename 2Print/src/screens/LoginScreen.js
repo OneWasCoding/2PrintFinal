@@ -19,7 +19,15 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/login`, { email, password });
+      const response = await axios.post(
+  `${API_URL}/login`, 
+  { email, password }, // This is the data you are sending
+  {
+    headers: {
+      'ngrok-skip-browser-warning': 'true' // This tells Ngrok to let you through
+    }
+  }
+);
       await AsyncStorage.setItem('userInfo', JSON.stringify(response.data.user));
       await AsyncStorage.setItem('userToken', response.data.token);
       navigation.replace('Main');

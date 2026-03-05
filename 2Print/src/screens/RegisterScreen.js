@@ -17,11 +17,22 @@ export default function RegisterScreen({ navigation }) {
   const [secureTextEntry, setSecureTextEntry] = useState(true);
 
   const handleRegister = async () => {
-    setLoading(true);
+  setLoading(true);
     try {
       // 1. Create the account in your MongoDB database
-      await axios.post(`${API_URL}/register`, { username, email, password });
-      
+      await axios.post(
+        `${API_URL}/register`, 
+        { 
+          username, 
+          email, 
+          password 
+        }, // <-- 2nd argument: Your registration data
+        {
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        }  // <-- 3rd argument: The Ngrok bypass header
+      );
       // 2. Show a success alert
       Alert.alert("Success!", "Account created successfully. Please log in.");
       
