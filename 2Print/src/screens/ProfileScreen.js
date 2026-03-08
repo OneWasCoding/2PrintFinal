@@ -15,9 +15,10 @@ export default function ProfileScreen({ navigation }) {
 
   // Form States
   const [editUsername, setEditUsername] = useState('');
+  const [editEmail, setEditEmail] = useState(''); // <-- NEW: State for editing email
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [secureTextEntry, setSecureTextEntry] = useState(true); // Eye toggle state
+  const [secureTextEntry, setSecureTextEntry] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -27,6 +28,7 @@ export default function ProfileScreen({ navigation }) {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
           setEditUsername(parsedUser.username);
+          setEditEmail(parsedUser.email); // <-- NEW: Populate current email
         }
       } catch (error) {
         console.error("Failed to load user data", error);
@@ -36,26 +38,37 @@ export default function ProfileScreen({ navigation }) {
   }, []);
 
   const handleSaveProfile = async () => {
+    // Basic validation
+    if (!editUsername || !editEmail) {
+      Alert.alert("Error", "Username and email cannot be empty.");
+      return;
+    }
+
     setLoading(true);
     try {
       await axios.put(
         `${API_URL}/update-profile`, 
         { 
-          email: user.email, 
+          currentEmail: user.email, // Backend needs to know who to find
+          newEmail: editEmail.toLowerCase(), // Always send emails in lowercase to prevent duplicates!
           newUsername: editUsername 
-        }, // <--- The data is the second argument
+        }, 
         {
           headers: {
             'ngrok-skip-browser-warning': 'true'
           }
-        } // <--- The headers are the third argument
+        } 
       );
-      const updatedUser = { ...user, username: editUsername };
+      
+      // Update local storage so the screen refreshes instantly
+      const updatedUser = { ...user, username: editUsername, email: editEmail };
       setUser(updatedUser);
       await AsyncStorage.setItem('userInfo', JSON.stringify(updatedUser));
+      
       setEditProfileVisible(false);
       Alert.alert("Success", "Profile updated successfully!");
     } catch (error) {
+      // If the backend says "Email taken", it will trigger this alert automatically!
       Alert.alert("Error", error.response?.data?.message || "Could not update profile.");
     } finally {
       setLoading(false);
@@ -68,20 +81,20 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
     setLoading(true);
-  try {
-    await axios.put(
-      `${API_URL}/change-password`, 
-      { 
-        email: user.email, 
-        currentPassword, 
-        newPassword 
-      }, // <-- 2nd argument: Your data payload
-      {
-        headers: {
-          'ngrok-skip-browser-warning': 'true'
-        }
-      }  // <-- 3rd argument: The Ngrok bypass header
-    );
+    try {
+      await axios.put(
+        `${API_URL}/change-password`, 
+        { 
+          email: user.email, 
+          currentPassword, 
+          newPassword 
+        },
+        {
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        }  
+      );
       setPasswordVisible(false);
       setCurrentPassword('');
       setNewPassword('');
@@ -100,7 +113,6 @@ export default function ProfileScreen({ navigation }) {
     navigation.replace('Login');
   };
 
-  // --- NEW: DELETE ACCOUNT FUNCTION ---
   const handleDeleteAccount = () => {
     Alert.alert(
       "Delete Account",
@@ -113,7 +125,6 @@ export default function ProfileScreen({ navigation }) {
           onPress: async () => {
             setLoading(true);
             try {
-              // Note: axios.delete requires data to be passed in a 'data' object
               await axios.delete(`${API_URL}/delete-account`, { data: { email: user.email } }, {
                 headers: {
                   'ngrok-skip-browser-warning': 'true'
@@ -187,7 +198,23 @@ export default function ProfileScreen({ navigation }) {
         <Dialog visible={isEditProfileVisible} onDismiss={() => setEditProfileVisible(false)} style={styles.dialog}>
           <Dialog.Title>Edit Profile</Dialog.Title>
           <Dialog.Content>
-            <TextInput label="Username" value={editUsername} onChangeText={setEditUsername} mode="outlined" style={styles.input} />
+            <TextInput 
+              label="Username" 
+              value={editUsername} 
+              onChangeText={setEditUsername} 
+              mode="outlined" 
+              style={styles.input} 
+            />
+            {/* <-- NEW: Email Input Field --> */}
+            <TextInput 
+              label="Email" 
+              value={editEmail} 
+              onChangeText={setEditEmail} 
+              mode="outlined" 
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={styles.input} 
+            />
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setEditProfileVisible(false)}>Cancel</Button>

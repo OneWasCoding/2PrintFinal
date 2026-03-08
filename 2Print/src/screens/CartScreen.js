@@ -1,22 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, ScrollView, StyleSheet, Image } from 'react-native';
 import { Text, Button, Surface, IconButton, Divider } from 'react-native-paper';
 
-// Temporary dummy data until we link the global state!
-const DUMMY_CART = [
-  { _id: '1', name: 'Charizard Base Set', game: 'Pokémon', price: 250.00, image: 'https://images.pokemontcg.io/base1/4_hires.png', quantity: 1 },
-  { _id: '4', name: 'The One Ring', game: 'Magic', price: 45.00, image: 'https://cards.scryfall.io/large/front/8/b/8b4c6198-500b-4eb4-b6db-5dc0e1635398.jpg', quantity: 1 },
-];
+// 1. IMPORT YOUR GLOBAL CART HOOK
+import { useCart } from '../context/CartContext';
 
 export default function CartScreen() {
-  const [cartItems, setCartItems] = useState(DUMMY_CART);
+  // 2. GRAB THE LIVE DATA AND REMOVE FUNCTION FROM THE CLOUD
+  const { cartItems, removeFromCart } = useCart();
 
-  // Removes the item from the screen when the trash can is clicked
-  const handleRemoveItem = (id) => {
-    setCartItems(cartItems.filter(item => item._id !== id));
-  };
-
-  // Automatically adds up the prices
+  // Automatically adds up the prices based on live data
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0).toFixed(2);
   };
@@ -36,7 +29,7 @@ export default function CartScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text variant="headlineMedium" style={styles.headerTitle}>Your Cart</Text>
         
-        {/* Mapping through our cart items to generate cards */}
+        {/* Mapping through our LIVE global cart items */}
         {cartItems.map((item) => (
           <Surface key={item._id} style={styles.cartItem} elevation={2}>
             <Image source={{ uri: item.image }} style={styles.itemImage} resizeMode="contain" />
@@ -44,14 +37,17 @@ export default function CartScreen() {
             <View style={styles.itemDetails}>
               <Text variant="labelSmall" style={styles.gameTag}>{item.game}</Text>
               <Text variant="titleMedium" numberOfLines={1} style={styles.itemName}>{item.name}</Text>
-              <Text variant="titleMedium" style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+              <Text variant="titleMedium" style={styles.itemPrice}>${item.price?.toFixed(2)}</Text>
+              {/* Added a quantity tracker! */}
+              <Text variant="labelSmall" style={{ color: '#666', marginTop: 2 }}>Qty: {item.quantity}</Text>
             </View>
 
             <IconButton 
               icon="delete-outline" 
               iconColor="#EF5350" 
               size={24} 
-              onPress={() => handleRemoveItem(item._id)} 
+              // 3. USE THE GLOBAL REMOVE FUNCTION
+              onPress={() => removeFromCart(item._id)} 
             />
           </Surface>
         ))}
