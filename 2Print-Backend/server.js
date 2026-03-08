@@ -32,7 +32,17 @@ cloudinary.config({
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/2Print-Data';
 
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ MongoDB Connected'))
+  .then(async () => {
+    console.log('✅ MongoDB Connected');
+    
+    // --- NEW: Destroy the old unique username wall ---
+    try {
+      await mongoose.connection.collection('users').dropIndex('username_1');
+      console.log('✅ Successfully removed the unique username restriction!');
+    } catch (err) {
+      // If it's already deleted, it will just quietly skip this
+    }
+  })
   .catch(err => console.error('❌ DB Error:', err));
 
 // --- AUTH & USER ROUTES ---
@@ -82,25 +92,40 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// 3. UPDATE USERNAME
+// 3. UPDATE PROFILE (Dynamic Username & Email)
 app.put('/update-profile', async (req, res) => {
   try {
-    const { email, newUsername } = req.body;
+    const { currentEmail, newEmail, newUsername } = req.body;
 
+    // 1. Build our update package
+    let updates = {};
+    if (newUsername) updates.username = newUsername;
+
+    // 2. Only check the database if they actually typed a DIFFERENT email
+    if (newEmail && newEmail !== currentEmail) {
+      const emailExists = await User.findOne({ email: newEmail });
+      if (emailExists) {
+        return res.status(400).json({ message: "That email is already in use by another account." });
+      }
+      updates.email = newEmail;
+    }
+
+    // 3. Update the database using an exact match
     const updatedUser = await User.findOneAndUpdate(
-      { email: email }, 
-      { username: newUsername }, 
-      { returnDocument: 'after' } 
+      { email: currentEmail }, 
+      { $set: updates },
+      { new: true } // Mongoose syntax to return the new document
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found in database." });
     }
 
     res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
   } catch (error) {
     console.error("Update Profile Error:", error);
-    res.status(500).json({ message: "Server error while updating profile" });
+    // Send the EXACT error to the phone so we can see it on the screen!
+    res.status(500).json({ message: `Server error: ${error.message}` });
   }
 });
 
@@ -162,7 +187,7 @@ app.get('/products', async (req, res) => {
   }
 });
 
-// --- NEW: ADD A PRODUCT (WITH CLOUDINARY UPLOAD) ---
+// --- ADD A PRODUCT (WITH CLOUDINARY UPLOAD) ---
 app.post('/add-product', async (req, res) => {
   try {
     const { name, set, game, condition, price, base64Image, category } = req.body;
@@ -182,12 +207,12 @@ app.post('/add-product', async (req, res) => {
     // 3. Save the new product to MongoDB
     const newProduct = new Product({
       name,
-      set,
+      set: set || 'User Uploaded', // <--- THE FIX: Automatically add a fallback string here!
       game,
-      condition,
+      condition: condition || 'Near Mint',
       price: parseFloat(price),
       image: imageUrl, 
-      category
+      category: category || 'Single Card'
     });
 
     await newProduct.save();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, FlatList, StyleSheet, Image, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, Searchbar, Card, Chip, IconButton, Surface } from 'react-native-paper';
+import { Text, Searchbar, Card, Chip, IconButton, Surface, FAB } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
 
@@ -25,20 +25,24 @@ export default function HomeScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState(FALLBACK_PRODUCTS);
   const [refreshing, setRefreshing] = useState(false);
-``
+
   useEffect(() => {
     fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
     try {
-      
-      // --- 2. UPDATED TO USE API_URL ---
+      // Fetching from your MongoDB backend via Ngrok
       const response = await axios.get(`${API_URL}/products`, {
-  headers: {
-    'ngrok-skip-browser-warning': 'true' // <--- THIS IS THE MAGIC KEY
-  }
-});
+        headers: {
+          'ngrok-skip-browser-warning': 'true' 
+        }
+      });
+      
+      // FIXED: Actually saving the database cards to the screen!
+      if (response.data && response.data.length > 0) {
+        setProducts(response.data); 
+      }
     } catch (error) {
       console.log("Using fallback data. Server error:", error.message);
     } finally {
@@ -73,7 +77,7 @@ export default function HomeScreen({ navigation }) {
 
       <ScrollView 
         showsVerticalScrollIndicator={false} 
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ paddingBottom: 100 }} // Increased padding so cards aren't hidden behind the FAB
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6200ee']} />
         }
@@ -135,6 +139,15 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
       </ScrollView>
+
+      {/* --- ADD LISTING FAB --- */}
+      <FAB
+        icon="camera-plus" // A great icon for a card scanning/selling feature
+        style={styles.fab}
+        color="#ffffff"
+        label="Sell" // Optional: gives the button text alongside the icon
+        onPress={() => navigation.navigate('AddListing')}
+      />
     </View>
   );
 }
@@ -161,4 +174,15 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 },
   priceText: { color: '#27ae60', fontWeight: 'bold' },
   conditionChip: { backgroundColor: '#e8f5e9', height: 20, justifyContent: 'center' },
+  
+  // --- FAB STYLING ---
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 10,
+    backgroundColor: '#6200ee', // Matches the "See All" and Refresh colors
+    borderRadius: 30, // Makes it a pill/circle shape
+    elevation: 4, // Adds a nice drop shadow
+  },
 });
